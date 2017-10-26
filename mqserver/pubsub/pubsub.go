@@ -1,4 +1,4 @@
-// Command pubsub is an example of a fanout exchange with dynamic reliable
+// Command pubsub is an example of a topic exchange with dynamic reliable
 // membership, reading from stdin, writing to stdout.
 //
 // This example shows how to implement reconnect logic independent from a
@@ -7,6 +7,7 @@
 package pubsub
 
 import (
+	"context"
 	"crypto/sha1"
 	"flag"
 	"fmt"
@@ -14,7 +15,6 @@ import (
 	"os"
 
 	"github.com/streadway/amqp"
-	"context"
 )
 
 var Url = flag.String("Url", "amqp://guest:guest@localhost/", "AMQP Url for both the publisher and subscriber")
@@ -66,8 +66,8 @@ func Redial(ctx context.Context, url string) chan chan Session {
 				log.Fatalf("cannot create channel: %v", err)
 			}
 
-			if err := ch.ExchangeDeclare(exchange, "topic", false, true, false, false, nil); err != nil {
-				log.Fatalf("cannot declare fanout exchange: %v", err)
+			if err := ch.ExchangeDeclare(exchange, "topic", true, false, false, false, nil); err != nil {
+				log.Fatalf("cannot declare topic exchange: %v", err)
 			}
 
 			select {
@@ -82,9 +82,9 @@ func Redial(ctx context.Context, url string) chan chan Session {
 	return sessions
 }
 
-// Publish publishes messages to a reconnecting Session to a fanout exchange.
+// Publish publishes messages to a reconnecting Session to a topic exchange.
 // It receives from the application specific source of messages.
-func Publish(sessions chan chan Session, messages <-chan Message) {
+func Publish(sessions chan chan Session, routingKey string, messages <-chan Message) {
 	for session := range sessions {
 		var (
 			running bool
@@ -119,7 +119,7 @@ func Publish(sessions chan chan Session, messages <-chan Message) {
 				reading = messages
 
 			case body = <-pending:
-				routingKey := "ignored for fanout exchanges, application dependent for other exchanges"
+				//routingKey := ""
 				err := pub.Publish(exchange, routingKey, false, false, amqp.Publishing{
 					Body: body,
 				})
@@ -154,25 +154,25 @@ func Identity() string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-// Subscribe consumes deliveries from an exclusive queue from a fanout exchange and sends to the application specific messages chan.
-func Subscribe(sessions chan chan Session, messages chan<- Message) {
+// Subscribe consumes deliveries from an exclusive queue from a topic exchange and sends to the application specific messages chan.
+func Subscribe(sessions chan chan Session, routingKey string, messages chan<- Message) {
 	queue := Identity()
 
 	for session := range sessions {
 		sub := <-session
 
-		if _, err := sub.QueueDeclare(queue, false, true, true, false, nil); err != nil {
+		if _, err := sub.QueueDeclare(queue, false, false, false, false, nil); err != nil {
 			log.Printf("cannot consume from exclusive queue: %q, %v", queue, err)
 			return
 		}
 
-		routingKey := "application specific routing key for fancy toplogies"
+		//routingKey := "application specific routing key for fancy toplogies"
 		if err := sub.QueueBind(queue, routingKey, exchange, false, nil); err != nil {
 			log.Printf("cannot consume without a binding to exchange: %q, %v", exchange, err)
 			return
 		}
 
-		deliveries, err := sub.Consume(queue, "", false, true, false, false, nil)
+		deliveries, err := sub.Consume(queue, "JsonRpc", false, false, false, false, nil)
 		if err != nil {
 			log.Printf("cannot consume from: %q, %v", queue, err)
 			return

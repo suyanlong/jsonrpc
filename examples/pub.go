@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"../mqserver/pubsub"
 	"context"
+	"fmt"
+
+	"JsonRpc/mqserver/pubsub"
 )
 
 func main() {
@@ -12,7 +13,7 @@ func main() {
 	tx := make(chan pubsub.Message)
 	defer close(tx)
 	go func() {
-		pubsub.Publish(pubsub.Redial(ctx, *pubsub.Url), tx)
+		pubsub.Publish(pubsub.Redial(ctx, *pubsub.Url), "jsonrpc.rpc", tx)
 		done()
 	}()
 
@@ -22,5 +23,7 @@ func main() {
 		tx <- data
 	}
 
+	//done()
 	<-ctx.Done()
+	fmt.Println("end")
 }
