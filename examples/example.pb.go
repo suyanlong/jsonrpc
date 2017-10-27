@@ -10,7 +10,7 @@ It is generated from these files:
 It has these top-level messages:
 	Test
 */
-package proto
+package main
 
 import proto1 "github.com/golang/protobuf/proto"
 import fmt "fmt"
