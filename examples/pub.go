@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"JsonRpc/mqserver/pubsub"
+	"jsonrpc/mqserver/pubsub"
 )
 
 func main() {

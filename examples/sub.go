@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	//不能使用相对路径。
-	"JsonRpc/mqserver/pubsub"
+	"jsonrpc/mqserver/pubsub"
 )
 
 func main() {

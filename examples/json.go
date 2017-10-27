@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"bytes"
 	log "github.com/sirupsen/logrus"
-	"JsonRpc/rpc"
+	"jsonrpc/rpc"
 )
 
 func main() {
