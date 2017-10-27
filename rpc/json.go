@@ -115,7 +115,7 @@ func (c *jsonCodec) ReadRequestHeaders() ([]rpcRequest, bool, Error) {
 		return parseBatchRequest(incomingMsg)
 	}
 
-	return parseRequest(incomingMsg)
+	return ParseRequest(incomingMsg)
 }
 
 // checkReqId returns an error when the given reqId isn't valid for RPC method calls.
@@ -134,10 +134,10 @@ func checkReqId(reqId json.RawMessage) error {
 	return fmt.Errorf("invalid request id")
 }
 
-// parseRequest will parse a single request from the given RawMessage. It will return
+// ParseRequest will parse a single request from the given RawMessage. It will return
 // the parsed request, an indication if the request was a batch or an error when
 // the request could not be parsed.
-func parseRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) {
+func ParseRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) {
 	var in JsonRequest
 	if err := json.Unmarshal(incomingMsg, &in); err != nil {
 		return nil, false, &invalidMessageError{err.Error()}
@@ -171,9 +171,9 @@ func parseRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) {
 	}
 
 	elems := strings.Split(in.Method, serviceMethodSeparator)
-	if len(elems) != 2 {
-		return nil, false, &methodNotFoundError{in.Method, ""}
-	}
+	//if len(elems) != 2 {
+	//	return nil, false, &methodNotFoundError{in.Method, ""}
+	//}
 
 	// regular RPC call
 	if len(in.Payload) == 0 {

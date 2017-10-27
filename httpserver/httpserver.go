@@ -3,7 +3,7 @@ package httpserver
 import (
 	"github.com/valyala/fasthttp"
 	log "github.com/sirupsen/logrus"
-
+	"jsonrpc/rpc"
 )
 
 func RequestHandler(ctx *fasthttp.RequestCtx) {
@@ -22,9 +22,8 @@ func RequestHandler(ctx *fasthttp.RequestCtx) {
 	path := string(ctx.URI().Path())
 	if path == "/" && ctx.IsPost() {
 		//time.Sleep(time.Second * 200)
-		//data := string(ctx.PostBody())
 		//jsonrpc.NewServerCodec()
-
+		log.Debug(rpc.ParseRequest(ctx.PostBody()))
 
 	} else {
 		//http request error

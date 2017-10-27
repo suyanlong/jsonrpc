@@ -1,10 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"bytes"
 	log "github.com/sirupsen/logrus"
 	"jsonrpc/rpc"
+	"encoding/json"
 )
 
 func main() {
@@ -22,4 +22,7 @@ func main() {
 			"data": in,
 		}).Debugln("test information")
 	}
+
+	json.Decoder{}.Decode()
+
 }
