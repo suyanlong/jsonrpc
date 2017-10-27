@@ -4,109 +4,40 @@
 package main
 
 import (
+	"github.com/valyala/fasthttp"
+	log "github.com/sirupsen/logrus"
 	"flag"
-	"fmt"
-	"log"
-
-	"github.com/streadway/amqp"
+	"net/rpc/jsonrpc"
 )
 
 var (
-	uri          = flag.String("uri", "amqp://guest:guest@localhost:5672/", "AMQP URI")
-	exchangeName = flag.String("exchange", "cita", "Durable AMQP exchange name")
-	exchangeType = flag.String("cita", "topic", "Exchange type - direct|fanout|topic|x-custom")
-	routingKey   = flag.String("key", "test-key", "AMQP routing key")
-	body         = flag.String("body", "foobar", "Body of message")
-	reliable     = flag.Bool("reliable", true, "Wait for the publisher confirmation before exiting")
+	addr = flag.String("addr", ":8080", "TCP address to listen to")
 )
 
+func requestHandler(ctx *fasthttp.RequestCtx) {
+	log.Info(log.WithField("time", 12))
+	log.Info("Request method is %s, conntinue time = %v, remoteIp = %s, ConnRequestNum = %d ", string(ctx.Method()), ctx.ConnTime(), string(ctx.Host()), ctx.ConnRequestNum())
+	log.Info("Raw request is:\n---CUT---\n%s\n---CUT---", &ctx.Request)
+	log.Info(ctx.Request.Body())
+
+	ctx.SetContentType("text/plain; charset=utf8")
+	// Set arbitrary headers
+	ctx.Response.SetBody([]byte("123"))
+
+}
+
 func init() {
-	flag.Parse()
+	format := log.TextFormatter{}
+	log.SetFormatter(&format)
+	//log.SetFormatter(&log.JSONFormatter{})
 }
 
 func main() {
-	if err := publish(*uri, *exchangeName, *exchangeType, *routingKey, *body, *reliable); err != nil {
-		log.Fatalf("%s", err)
-	}
-	log.Printf("published %dB OK", len(*body))
-}
+	log.WithFields(log.Fields{
+		"JsonRpc": "runing",
+	}).Info("runing")
 
-func publish(amqpURI, exchange, exchangeType, routingKey, body string, reliable bool) error {
+	fasthttp.ListenAndServe(*addr, requestHandler)
+	fasthttp.AcquireResponse()
 
-	// This function dials, connects, declares, publishes, and tears down,
-	// all in one go. In a real service, you probably want to maintain a
-	// long-lived connection as state, and publish against that.
-
-	log.Printf("dialing %q", amqpURI)
-	connection, err := amqp.Dial(amqpURI)
-	if err != nil {
-		return fmt.Errorf("Dial: %s", err)
-	}
-	defer connection.Close()
-
-	log.Printf("got Connection, getting Channel")
-	channel, err := connection.Channel()
-	if err != nil {
-		return fmt.Errorf("Channel: %s", err)
-	}
-
-	log.Printf("got Channel, declaring %q Exchange (%q)", exchangeType, exchange)
-	if err := channel.ExchangeDeclare(
-		exchange,     // name
-		exchangeType, // type
-		true,         // durable
-		false,        // auto-deleted
-		false,        // internal
-		false,        // noWait
-		nil,          // arguments
-	); err != nil {
-		return fmt.Errorf("Exchange Declare: %s", err)
-	}
-
-	// Reliable publisher confirms require confirm.select support from the
-	// connection.
-	if reliable {
-		log.Printf("enabling publishing confirms.")
-		if err := channel.Confirm(false); err != nil {
-			return fmt.Errorf("Channel could not be put into confirm mode: %s", err)
-		}
-
-		confirms := channel.NotifyPublish(make(chan amqp.Confirmation, 1))
-
-		defer confirmOne(confirms)
-	}
-
-	log.Printf("declared Exchange, publishing %dB body (%q)", len(body), body)
-	if err = channel.Publish(
-		exchange,   // publish to an exchange
-		routingKey, // routing to 0 or more queues
-		false,      // mandatory
-		false,      // immediate
-		amqp.Publishing{
-			Headers:         amqp.Table{},
-			ContentType:     "text/plain",
-			ContentEncoding: "",
-			Body:            []byte(body),
-			DeliveryMode:    amqp.Transient, // 1=non-persistent, 2=persistent
-			Priority:        0,              // 0-9
-			// a bunch of application/implementation-specific fields
-		},
-	); err != nil {
-		return fmt.Errorf("Exchange Publish: %s", err)
-	}
-
-	return nil
-}
-
-// One would typically keep a channel of publishings, a sequence number, and a
-// set of unacknowledged sequence numbers and loop until the publishing channel
-// is closed.
-func confirmOne(confirms <-chan amqp.Confirmation) {
-	log.Printf("waiting for confirmation of one publishing")
-
-	if confirmed := <-confirms; confirmed.Ack {
-		log.Printf("confirmed delivery with delivery tag: %d", confirmed.DeliveryTag)
-	} else {
-		log.Printf("failed delivery of delivery tag: %d", confirmed.DeliveryTag)
-	}
 }

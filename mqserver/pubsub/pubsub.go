@@ -17,10 +17,10 @@ import (
 	"github.com/streadway/amqp"
 )
 
-var Url = flag.String("Url", "amqp://guest:guest@localhost/", "AMQP Url for both the publisher and subscriber")
+var Url = flag.String("Url", "amqp://guest:guest@localhost/dev", "AMQP Url for both the publisher and subscriber")
 
 // exchange binds the publishers to the subscribers
-const exchange = "cita"
+const exchange = "CITA"
 
 // Message is the application type for a Message.  This can contain Identity,
 // or a reference to the recevier chan for further demuxing.
@@ -119,7 +119,6 @@ func Publish(sessions chan chan Session, routingKey string, messages <-chan Mess
 				reading = messages
 
 			case body = <-pending:
-				//routingKey := ""
 				err := pub.Publish(exchange, routingKey, false, false, amqp.Publishing{
 					Body: body,
 				})
@@ -166,7 +165,6 @@ func Subscribe(sessions chan chan Session, routingKey string, messages chan<- Me
 			return
 		}
 
-		//routingKey := "application specific routing key for fancy toplogies"
 		if err := sub.QueueBind(queue, routingKey, exchange, false, nil); err != nil {
 			log.Printf("cannot consume without a binding to exchange: %q, %v", exchange, err)
 			return
