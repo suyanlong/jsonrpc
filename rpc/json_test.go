@@ -45,11 +45,7 @@ func TestJSONRequestParsing(t *testing.T) {
 		t.Fatalf("Expected 1 request but got %d requests - %v", len(requests), requests)
 	}
 
-	if requests[0].service != "calc" {
-		t.Fatalf("Expected service 'calc' but got '%s'", requests[0].service)
-	}
-
-	if requests[0].method != "add" {
+	if requests[0].method != "calc_add" {
 		t.Fatalf("Expected method 'Add' but got '%s'", requests[0].method)
 	}
 

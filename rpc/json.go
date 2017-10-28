@@ -7,10 +7,7 @@ import (
 	"io"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
-
-	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -147,40 +144,11 @@ func ParseRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) {
 		return nil, false, &invalidMessageError{err.Error()}
 	}
 
-	// subscribe are special, they will always use `subscribeMethod` as first param in the payload
-	if strings.HasSuffix(in.Method, subscribeMethodSuffix) {
-		reqs := []rpcRequest{{id: &in.Id, isPubSub: true}}
-		if len(in.Payload) > 0 {
-			// first param must be subscription name
-			var subscribeMethod [1]string
-			if err := json.Unmarshal(in.Payload, &subscribeMethod); err != nil {
-				log.Debug(fmt.Sprintf("Unable to parse subscription method: %v\n", err))
-				return nil, false, &invalidRequestError{"Unable to parse subscription request"}
-			}
-
-			reqs[0].service, reqs[0].method = strings.TrimSuffix(in.Method, subscribeMethodSuffix), subscribeMethod[0]
-			reqs[0].params = in.Payload
-			return reqs, false, nil
-		}
-		return nil, false, &invalidRequestError{"Unable to parse subscription request"}
-	}
-
-	if strings.HasSuffix(in.Method, unsubscribeMethodSuffix) {
-		return []rpcRequest{{id: &in.Id, isPubSub: true,
-			method: in.Method, params: in.Payload}}, false, nil
-	}
-
-	elems := strings.Split(in.Method, serviceMethodSeparator)
-	//if len(elems) != 2 {
-	//	return nil, false, &methodNotFoundError{in.Method, ""}
-	//}
-
-	// regular RPC call
 	if len(in.Payload) == 0 {
-		return []rpcRequest{{service: elems[0], method: elems[1], id: &in.Id}}, false, nil
+		return []rpcRequest{{method: in.Method, id: &in.Id}}, false, nil
 	}
 
-	return []rpcRequest{{service: elems[0], method: elems[1], id: &in.Id, params: in.Payload}}, false, nil
+	return []rpcRequest{{method: in.Method, id: &in.Id, params: in.Payload}}, false, nil
 }
 
 // parseBatchRequest will parse a batch request into a collection of requests from the given RawMessage, an indication
@@ -199,40 +167,14 @@ func parseBatchRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) 
 
 		id := &in[i].Id
 
-		// subscribe are special, they will always use `subscriptionMethod` as first param in the payload
-		if strings.HasSuffix(r.Method, subscribeMethodSuffix) {
-			requests[i] = rpcRequest{id: id, isPubSub: true}
-			if len(r.Payload) > 0 {
-				// first param must be subscription name
-				var subscribeMethod [1]string
-				if err := json.Unmarshal(r.Payload, &subscribeMethod); err != nil {
-					log.Debug(fmt.Sprintf("Unable to parse subscription method: %v\n", err))
-					return nil, false, &invalidRequestError{"Unable to parse subscription request"}
-				}
-
-				requests[i].service, requests[i].method = strings.TrimSuffix(r.Method, subscribeMethodSuffix), subscribeMethod[0]
-				requests[i].params = r.Payload
-				continue
-			}
-
-			return nil, true, &invalidRequestError{"Unable to parse (un)subscribe request arguments"}
-		}
-
-		if strings.HasSuffix(r.Method, unsubscribeMethodSuffix) {
-			requests[i] = rpcRequest{id: id, isPubSub: true, method: r.Method, params: r.Payload}
-			continue
-		}
-
 		if len(r.Payload) == 0 {
 			requests[i] = rpcRequest{id: id, params: nil}
 		} else {
 			requests[i] = rpcRequest{id: id, params: r.Payload}
 		}
-		if elem := strings.Split(r.Method, serviceMethodSeparator); len(elem) == 2 {
-			requests[i].service, requests[i].method = elem[0], elem[1]
-		} else {
-			requests[i].err = &methodNotFoundError{r.Method, ""}
-		}
+
+		requests[i].method = r.Method
+
 	}
 
 	return requests, true, nil

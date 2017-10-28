@@ -62,7 +62,6 @@ type Server struct {
 
 // rpcRequest represents a raw incoming RPC request
 type rpcRequest struct {
-	service  string
 	method   string
 	id       interface{}
 	isPubSub bool
