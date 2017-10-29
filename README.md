@@ -25,7 +25,7 @@
 
 * 模拟调试数据：
 
-    ```json
+    ``` json
     curl -X POST --data '{"jsonrpc":"2.0","method":"cita_blockNumber","params":[]}' 127.0.0.1:1337 | jq
 
     curl -X POST --data '{"jsonrpc":"2.0","method":"peerCount","params":[],"id":74}' 127.0.0.1:1337 | jq
@@ -39,7 +39,7 @@
 ##### 其他
 
 * 项目结构
-    ```
+    
     ----
         |- httpserver
 
@@ -51,5 +51,5 @@
 
         |- example
 
-    ```
+
 

@@ -3,21 +3,21 @@
 
 [[projects]]
   name = "github.com/ethereum/go-ethereum"
-  packages = ["common/hexutil","common/math","log"]
+  packages = ["common/hexutil","common/math"]
   revision = "1db4ecdc0b9e828ff65777fb466fc7c1d04e0de9"
   version = "v1.7.2"
-
-[[projects]]
-  name = "github.com/go-stack/stack"
-  packages = ["."]
-  revision = "817915b46b97fd7bb80e8ab6b69f01a53ac3eebf"
-  version = "v1.6.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "1643683e1b54a9e88ad26d98f81400c8c9d9f4f9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  revision = "553a641470496b2327abcac10b36396bd98e45c9"
 
 [[projects]]
   name = "github.com/klauspost/compress"
@@ -64,6 +64,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b7719ea6e6fcd1e9e08008c1ed19eba1bef89fea009da5d734f219971f48c1e3"
+  inputs-digest = "84941fcfed0cfdb5fc87659137e1603e0b2d3ae443f5bde6732737aaddf609fe"
   solver-name = "gps-cdcl"
   solver-version = 1

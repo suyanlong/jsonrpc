@@ -44,3 +44,7 @@
 [[constraint]]
   name = "gopkg.in/fatih/set.v0"
   version = "0.1.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/golang/snappy"
