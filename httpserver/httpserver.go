@@ -4,11 +4,12 @@ import (
 	"github.com/valyala/fasthttp"
 	log "github.com/sirupsen/logrus"
 	"jsonrpc/rpc"
-	"sync"
 	"fmt"
+	"jsonrpc/libproto"
+	"sync"
 )
 
-var IdMap = sync.Map{}
+var IdMap sync.Map
 
 func RequestHandler(ctx *fasthttp.RequestCtx) {
 	log.WithFields(log.Fields{
@@ -27,10 +28,17 @@ func RequestHandler(ctx *fasthttp.RequestCtx) {
 		//time.Sleep(time.Second * 200)
 		//jsonrpc.NewServerCodec()
 		if _, _, err := rpc.ParseRequest(ctx.PostBody()); err != nil {
-			rx := make(chan []byte, 1)
+			rx := make(chan libproto.Response, 1)
 			IdMap.Store(ctx.ID(), rx)
-			height := <-rx
-			data := fmt.Sprintf("\"id\": %v,\"jsonrpc\": \"2.0\",\"result\": \"%v\"", 1, height)
+			res := <-rx
+			if res.Code == 0 {
+				//
+
+			} else {
+				//TODO error
+			}
+
+			data := fmt.Sprintf("\"id\": %v,\"jsonrpc\": \"2.0\",\"result\": \"%v\"", 1, 0)
 			ctx.SetBody([]byte(data))
 		} else {
 			ctx.SetBody([]byte("cita: this is error "))

@@ -11,6 +11,7 @@ import (
 	"jsonrpc/httpserver"
 	"jsonrpc/mqserver/pubsub"
 	"runtime"
+	"jsonrpc/libproto"
 )
 
 var (
@@ -23,6 +24,8 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
+const LENGHT = 10000
+
 func main() {
 	//setup cpu core
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -33,7 +36,7 @@ func main() {
 
 	ctx, done := context.WithCancel(context.Background())
 	//mq Publish
-	pubTx := make(chan pubsub.Message)
+	pubTx := make(chan pubsub.Message, LENGHT)
 	defer close(pubTx)
 	go func() {
 		pubsub.Publish(pubsub.Redial(ctx, *pubsub.Url), "jsonrpc.rpc", pubTx)
@@ -41,7 +44,7 @@ func main() {
 	}()
 
 	//mq Subscribe
-	subRx := make(chan pubsub.Message)
+	subRx := make(chan pubsub.Message, LENGHT)
 	defer close(subRx)
 	go func() {
 		pubsub.Subscribe(pubsub.Redial(ctx, *pubsub.Url), "*.rpc", subRx)
@@ -50,8 +53,20 @@ func main() {
 
 	go func() {
 		data := <-subRx
-		//httpserver.IdMap.Load()
+		if _, typeValue, msg, err := libproto.ParseMsg(data); err == nil {
+			if typeValue == libproto.MsgType_RESPONSE {
+				if res, ok := msg.(*libproto.Response); ok {
+					if tx, ok := httpserver.IdMap.Load(res.RequestId); ok {
+						if rx, err := tx.(chan libproto.Response); err {
+							rx <- *res
+						}
+					}
+				}
+			}
 
+		} else {
+
+		}
 	}()
 
 	//http server
