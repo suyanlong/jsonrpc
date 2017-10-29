@@ -1,9 +1,3 @@
-// Command pubsub is an example of a topic exchange with dynamic reliable
-// membership, reading from stdin, writing to stdout.
-//
-// This example shows how to implement reconnect logic independent from a
-// Publish/Subscribe loop with bridges to application types.
-
 package pubsub
 
 import (

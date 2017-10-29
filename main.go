@@ -1,6 +1,3 @@
-// This example declares a durable Exchange, and publishes a single message to
-// that Exchange with a given routing key.
-//
 package main
 
 import (
@@ -51,6 +48,7 @@ func main() {
 		done()
 	}()
 
+	//
 	go func() {
 		data := <-subRx
 		if _, typeValue, msg, err := libproto.ParseMsg(data); err == nil {
