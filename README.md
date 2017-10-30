@@ -16,8 +16,6 @@
    模仿rust的包管理器实现的，目前未正式发布，预计go1.20版本发布。初始化项目命令：
 
     ```
-    dep init
-
     dep ensure
     ```
 
@@ -26,7 +24,7 @@
 * 模拟调试数据：
 
     ``` json
-    curl -X POST --data '{"jsonrpc":"2.0","method":"cita_blockNumber","params":[]}' 127.0.0.1:1337 | jq
+    curl -X POST --data '{"jsonrpc":"2.0","method":"cita_blockNumber","params":[],"id":74}' 127.0.0.1:1337 | jq
 
     curl -X POST --data '{"jsonrpc":"2.0","method":"peerCount","params":[],"id":74}' 127.0.0.1:1337 | jq
 

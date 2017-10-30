@@ -19,7 +19,7 @@ func DeCmdId(cmdId uint32) (uint32, uint32) {
 
 const ZEROORIGIN uint32 = 99999
 
-func CreateMsg(sub, topic uint32, msgType MsgType, content []byte) Message {
+func CreateMsg(sub, topic uint32, msgType MsgType, content []byte) ([]byte, error) {
 	msg := Message{
 		CmdId:   CmdId(sub, topic),
 		Type:    msgType,
@@ -28,10 +28,10 @@ func CreateMsg(sub, topic uint32, msgType MsgType, content []byte) Message {
 		//compress data
 		Content: snappy.CitaCompress(content),
 	}
-	return msg
+	return proto.Marshal(&msg)
 }
 
-func CreateMsgEx(sub, topic, origin uint32, msgType MsgType, operate OperateType, content []byte) Message {
+func CreateMsgEx(sub, topic, origin uint32, msgType MsgType, operate OperateType, content []byte) ([]byte, error) {
 	msg := Message{
 		CmdId:   CmdId(sub, topic),
 		Type:    msgType,
@@ -41,7 +41,7 @@ func CreateMsgEx(sub, topic, origin uint32, msgType MsgType, operate OperateType
 		Content: snappy.CitaCompress(content),
 	}
 
-	return msg
+	return proto.Marshal(&msg)
 }
 
 func ParseMsg(data []byte) (uint32, MsgType, proto.Message, error) {
@@ -49,11 +49,16 @@ func ParseMsg(data []byte) (uint32, MsgType, proto.Message, error) {
 	if err := proto.Unmarshal(data, &pb); err != nil {
 		return 0, 0, nil, err
 	} else {
+		deData := snappy.CitaDecompress(pb.Content)
 		var content proto.Message
-		if err := proto.Unmarshal(pb.Content, content); err != nil {
+		if pb.Type == MsgType_RESPONSE {
+			content = new(Response)
+		}
+		if err := proto.Unmarshal(deData, content); err != nil {
 			return 0, 0, nil, err
 		} else {
 			return pb.CmdId, pb.Type, content, nil
 		}
+
 	}
 }

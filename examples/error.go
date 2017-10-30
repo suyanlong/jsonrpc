@@ -1,6 +1,7 @@
 package main
 
 import "fmt"
+import "strconv"
 
 func main() {
 	//error := 10;
@@ -9,4 +10,6 @@ func main() {
 	} else if vdk != 101 {
 		fmt.Println("false")
 	}
+
+	fmt.Println(strconv.Itoa(2323131231231232132))
 }

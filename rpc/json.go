@@ -151,6 +151,19 @@ func ParseRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) {
 	return []rpcRequest{{method: in.Method, id: &in.Id, params: in.Payload}}, false, nil
 }
 
+func ParseRequestEx(incomingMsg json.RawMessage) (*JsonRequest, Error) {
+	var in JsonRequest
+	if err := json.Unmarshal(incomingMsg, &in); err != nil {
+		return nil, &invalidMessageError{err.Error()}
+	}
+
+	//if err := checkReqId(in.Id); err != nil {
+	//	return nil, &invalidMessageError{err.Error()}
+	//}
+
+	return &in, nil
+}
+
 // parseBatchRequest will parse a batch request into a collection of requests from the given RawMessage, an indication
 // if the request was a batch or an error when the request could not be read.
 func parseBatchRequest(incomingMsg json.RawMessage) ([]rpcRequest, bool, Error) {

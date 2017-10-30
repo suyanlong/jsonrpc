@@ -179,7 +179,7 @@ func Subscribe(sessions chan chan Session, routingKey string, messages chan<- Pu
 			return
 		}
 
-		if deliveries, err := sub.Consume(*queue, "JsonRpc", false, false, false, false, nil); err != nil {
+		if deliveries, err := sub.Consume(*queue, "JsonRpc", true, false, false, false, nil); err != nil {
 			log.Printf("cannot consume from: %q, %v", queue, err)
 			return
 		} else {
@@ -190,7 +190,7 @@ func Subscribe(sessions chan chan Session, routingKey string, messages chan<- Pu
 					Data:  msg.Body,
 					Topic: msg.RoutingKey,
 				}
-				sub.Ack(msg.DeliveryTag, true)
+				//sub.Ack(msg.DeliveryTag, true)
 			}
 		}
 	}
