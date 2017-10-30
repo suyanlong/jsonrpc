@@ -3,22 +3,34 @@ package pubsub
 import (
 	"context"
 	"crypto/sha1"
-	"flag"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/streadway/amqp"
+	"flag"
 )
 
-var Url = flag.String("Url", "amqp://guest:guest@localhost/dev", "AMQP Url for both the publisher and subscriber")
+var (
+	uri          = flag.String("uri", "amqp://guest:guest@localhost/dev", "AMQP URI for both the publisher and subscriber")
+	exchange     = flag.String("exchange", "cita", "Durable AMQP exchange name")
+	exchangeType = flag.String("exchange-type", "topic", "Exchange type - direct|fanout|Topic|x-custom")
+	queue        = flag.String("queue", "jsonrpc", "subscriber queue")
+	routingKey   = flag.String("key", "*.rpc", "subscriber routing key")
+)
 
-// exchange binds the publishers to the subscribers
-const exchange = "CITA"
+func init() {
+	flag.Parse()
+}
 
 // Message is the application type for a Message.  This can contain Identity,
 // or a reference to the recevier chan for further demuxing.
-type Message []byte
+//type Message []byte
+
+type PubType struct {
+	Topic string
+	Data  []byte
+}
 
 // Session composes an amqp.Connection with an amqp.Channel
 type Session struct {
@@ -35,7 +47,7 @@ func (s Session) Close() error {
 }
 
 // Redial continually connects to the URL, exiting the program when no longer possible
-func Redial(ctx context.Context, url string) chan chan Session {
+func Redial(ctx context.Context) chan chan Session {
 	sessions := make(chan chan Session)
 
 	go func() {
@@ -43,6 +55,7 @@ func Redial(ctx context.Context, url string) chan chan Session {
 		defer close(sessions)
 
 		for {
+			//
 			select {
 			case sessions <- sess:
 			case <-ctx.Done():
@@ -50,9 +63,10 @@ func Redial(ctx context.Context, url string) chan chan Session {
 				return
 			}
 
-			conn, err := amqp.Dial(url)
+			//connection rabbitmq
+			conn, err := amqp.Dial(*uri)
 			if err != nil {
-				log.Fatalf("cannot (re)dial: %v: %q", err, url)
+				log.Fatalf("cannot (re)dial: %v: %q", err, *uri)
 			}
 
 			ch, err := conn.Channel()
@@ -60,10 +74,11 @@ func Redial(ctx context.Context, url string) chan chan Session {
 				log.Fatalf("cannot create channel: %v", err)
 			}
 
-			if err := ch.ExchangeDeclare(exchange, "topic", true, false, false, false, nil); err != nil {
-				log.Fatalf("cannot declare topic exchange: %v", err)
+			if err := ch.ExchangeDeclare(*exchange, *exchangeType, true, false, false, false, nil); err != nil {
+				log.Fatalf("cannot declare Topic exchange: %v", err)
 			}
 
+			//
 			select {
 			case sess <- Session{conn, ch}:
 			case <-ctx.Done():
@@ -76,14 +91,14 @@ func Redial(ctx context.Context, url string) chan chan Session {
 	return sessions
 }
 
-// Publish publishes messages to a reconnecting Session to a topic exchange.
+// Publish publishes messages to a reconnecting Session to a Topic exchange.
 // It receives from the application specific source of messages.
-func Publish(sessions chan chan Session, routingKey string, messages <-chan Message) {
+func Publish(sessions chan chan Session, messages <-chan PubType) {
 	for session := range sessions {
 		var (
 			running bool
 			reading = messages
-			pending = make(chan Message, 1)
+			pending = make(chan PubType, 1)
 			confirm = make(chan amqp.Confirmation, 1)
 		)
 
@@ -101,20 +116,20 @@ func Publish(sessions chan chan Session, routingKey string, messages <-chan Mess
 
 	Publish:
 		for {
-			var body Message
+			var body PubType
 			select {
 			case confirmed, ok := <-confirm:
 				if !ok {
 					break Publish
 				}
 				if !confirmed.Ack {
-					log.Printf("nack Message %d, body: %q", confirmed.DeliveryTag, string(body))
+					log.Printf("nack Message %d, body: %q", confirmed.DeliveryTag, string(body.Data))
 				}
 				reading = messages
 
 			case body = <-pending:
-				err := pub.Publish(exchange, routingKey, false, false, amqp.Publishing{
-					Body: body,
+				err := pub.Publish(*exchange, body.Topic, false, false, amqp.Publishing{
+					Body: body.Data,
 				})
 				// Retry failed delivery on the next Session
 				if err != nil {
@@ -147,34 +162,36 @@ func Identity() string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-// Subscribe consumes deliveries from an exclusive queue from a topic exchange and sends to the application specific messages chan.
-func Subscribe(sessions chan chan Session, routingKey string, messages chan<- Message) {
-	queue := Identity()
+// Subscribe consumes deliveries from an exclusive queue from a Topic exchange and sends to the application specific messages chan.
+func Subscribe(sessions chan chan Session, routingKey string, messages chan<- PubType) {
+	//queue := Identity()
 
 	for session := range sessions {
 		sub := <-session
 
-		if _, err := sub.QueueDeclare(queue, false, false, false, false, nil); err != nil {
+		if _, err := sub.QueueDeclare(*queue, true, false, false, false, nil); err != nil {
 			log.Printf("cannot consume from exclusive queue: %q, %v", queue, err)
 			return
 		}
 
-		if err := sub.QueueBind(queue, routingKey, exchange, false, nil); err != nil {
-			log.Printf("cannot consume without a binding to exchange: %q, %v", exchange, err)
+		if err := sub.QueueBind(*queue, routingKey, *exchange, false, nil); err != nil {
+			log.Printf("cannot consume without a binding to exchange: %q, %v", *exchange, err)
 			return
 		}
 
-		deliveries, err := sub.Consume(queue, "JsonRpc", false, false, false, false, nil)
-		if err != nil {
+		if deliveries, err := sub.Consume(*queue, "JsonRpc", false, false, false, false, nil); err != nil {
 			log.Printf("cannot consume from: %q, %v", queue, err)
 			return
-		}
+		} else {
 
-		log.Printf("subscribed...")
-
-		for msg := range deliveries {
-			messages <- Message(msg.Body)
-			sub.Ack(msg.DeliveryTag, false)
+			log.Printf("subscribed...")
+			for msg := range deliveries {
+				messages <- PubType{
+					Data:  msg.Body,
+					Topic: msg.RoutingKey,
+				}
+				sub.Ack(msg.DeliveryTag, true)
+			}
 		}
 	}
 }

@@ -11,15 +11,15 @@ import (
 func main() {
 	fmt.Println("sub testing...............")
 	ctx, done := context.WithCancel(context.Background())
-	rx := make(chan pubsub.Message)
+	rx := make(chan pubsub.PubType)
 
 	go func() {
-		pubsub.Subscribe(pubsub.Redial(ctx, *pubsub.Url), "*.rpc", rx)
+		pubsub.Subscribe(pubsub.Redial(ctx), "*.rpc", rx)
 		done()
 	}()
 
 	for msg := range rx {
-		fmt.Println(string(msg))
+		fmt.Println(msg)
 	}
 	<-ctx.Done()
 }
