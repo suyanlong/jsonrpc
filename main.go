@@ -10,6 +10,8 @@ import (
 	"jsonrpc/libproto"
 	"strconv"
 	"runtime"
+	_ "net/http/pprof"
+	"net/http"
 )
 
 var (
@@ -32,7 +34,11 @@ func init() {
 func main() {
 	//setup cpu core
 
-	runtime.GOMAXPROCS(1)
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	log.WithFields(log.Fields{
 		"JsonRpc": "run",
