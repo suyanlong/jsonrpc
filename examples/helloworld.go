@@ -4,8 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
-
+	"runtime"
+	_ "time"
 	"github.com/valyala/fasthttp"
+	_ "net/http/pprof"
+	"net/http"
 )
 
 var (
@@ -16,6 +19,11 @@ var (
 func main() {
 	flag.Parse()
 
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	h := requestHandler
 	if *compress {
 		h = fasthttp.CompressHandler(h)
@@ -46,5 +54,6 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 
 	// Set arbitrary headers
 	ctx.Response.Header.Set("X-My-Header", "my-header-value")
+	//time.Sleep(time.Second * 1)
 
 }
