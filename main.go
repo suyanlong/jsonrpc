@@ -6,12 +6,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/valyala/fasthttp"
 	"jsonrpc/httpserver"
-	"jsonrpc/mqserver/pubsub"
 	"jsonrpc/libproto"
-	"strconv"
-	"runtime"
-	_ "net/http/pprof"
+	"jsonrpc/mqserver/pubsub"
 	"net/http"
+	_ "net/http/pprof"
+	"runtime"
+	"strconv"
 )
 
 var (
